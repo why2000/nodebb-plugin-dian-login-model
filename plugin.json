@@ -1,0 +1,10 @@
+{
+	"id": "nodebb-plugin-dian-login-model",
+	"library": "./library.js",
+	"hooks": [
+        { 
+            "hook": "action:auth.overrideLogin",
+            "method": "login"
+        }
+	]
+}
