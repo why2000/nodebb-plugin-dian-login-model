@@ -55,16 +55,16 @@ plugin.continueLogin = function (req, username, password, next) {
                         // console.log(iconv.decode(bufferHelper.toBuffer(),'gb2312').indexOf('错误! 密码错误!'));
                         if (iconv.decode(bufferHelper.toBuffer(), 'gb2312').indexOf('错误! 密码错误!') > -1) {
                             winston.info('Dian wrong password');
-                            winston.info(iconv.decode(bufferHelper.toBuffer(), 'gb2312'));
+                            // winston.info(iconv.decode(bufferHelper.toBuffer(), 'gb2312'));
                             next(new Error('[[error:invalid-username-or-password]]'));
                         }
                         else if (iconv.decode(bufferHelper.toBuffer(), 'gb2312').indexOf('错误! 错误的使用者帐号!') > -1) {
                             winston.info('Dian user not found');
-                            winston.info(iconv.decode(bufferHelper.toBuffer(), 'gb2312'));
+                            // winston.info(iconv.decode(bufferHelper.toBuffer(), 'gb2312'));
                             next(new Error('[[error:invalid-username-or-password]]'));
                         } else {
                             winston.info('Dian user found');
-                            winston.info(iconv.decode(bufferHelper.toBuffer(), 'gb2312'));
+                            // winston.info(iconv.decode(bufferHelper.toBuffer(), 'gb2312'));
                             var user = module.parent.require('./user');
                             userData = {
                                 username: username,
@@ -74,11 +74,11 @@ plugin.continueLogin = function (req, username, password, next) {
                             user.create(userData, function (err) {
                                 var Users = module.parent.require('./user');
                                 Users.getUidByUsername(username, function (err, uid) {
-                                    winston.info(username);
-                                    winston.info(uid);
+                                    // winston.info(username);
+                                    // winston.info(uid);
                                     newuid = uid;
-                                    winston.info(newuid);
-                                    winston.info('is uid');
+                                    // winston.info(newuid);
+                                    // winston.info('is uid');
                                     next(null, {
                                         uid: newuid
                                     }, '[[success:authentication-successful]]');
@@ -91,11 +91,11 @@ plugin.continueLogin = function (req, username, password, next) {
                 request.write(postData);
                 request.end();
             } else {
-                winston.info('doc');
-                winston.info(doc);
+                // winston.info('doc');
+                // winston.info(doc);
                 newuid = doc.uid;
-                winston.info(newuid);
-                winston.info('is uid');
+                // winston.info(newuid);
+                // winston.info('is uid');
                 next(null, {
                     uid: newuid
                 }, '[[success:authentication-successful]]');
