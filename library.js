@@ -36,9 +36,9 @@ plugin.continueLogin = function (req, username, password, next) {
                     pw: password
                 })
                 var option = {
-                    host: '115.156.207.252',
+                    host: 'yuxin.dian.org.cn',
                     path: '/bbslogin',
-                    port: '81',
+                    port: '80',
                     method: 'POST',
                     headers: {
                         'Content-type': 'application/x-www-form-urlencoded',
