@@ -106,16 +106,16 @@ plugin.continueLogin = function (req, username, password, next) {
                 if (password.length > 4096) {
                     return next(new Error('[[error:password-too-long]]'));
                 }
-                winston.info('doc');
-                winston.info(doc);
+                // winston.info('doc');
+                // winston.info(doc);
                 async.waterfall([
                     function (next) {
                         user.getUidByUserslug(userslug, next);
                     },
                     function (_uid, next) {
                         uid = _uid;
-                        winston.info('uid');
-                        winston.info(uid);
+                        // winston.info('uid');
+                        // winston.info(uid);
                         // winston.info('123');
                         async.parallel({
                             userData: function (next) {
@@ -141,7 +141,7 @@ plugin.continueLogin = function (req, username, password, next) {
                         // winston.info('ready for Comparing');
                         // winston.info('Comparing');
                         Password.compare(password, userData.password, next);
-                        winston.info('Compare finished');
+                        // winston.info('Compare finished');
                     },
                     function (passwordMatch, next) {
                         // winston.info('passwordMatch');
