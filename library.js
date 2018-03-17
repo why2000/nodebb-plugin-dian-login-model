@@ -1,6 +1,11 @@
 var async = require('async');
 var crypto = require('crypto');
 var mongoose = require('mongoose');
+var utils = module.parent.require('./utils');
+var Password = module.parent.require('./password');
+var user = module.parent.require('./user');
+var db = module.parent.require('./database');
+var translator = module.parent.require('./translator');
 mongoose.connect('mongodb://nodebb:12345678@127.0.0.1:27017/nodebb');
 var passport = module.parent.require('passport'),
     passportLocal = module.parent.require('passport-local').Strategy,
@@ -65,8 +70,8 @@ plugin.continueLogin = function (req, username, password, next) {
                         } else {
                             winston.info('Dian user found');
                             // winston.info(iconv.decode(bufferHelper.toBuffer(), 'gb2312'));
-                            var user = module.parent.require('./user');
-                            userData = {
+
+                            var userData = {
                                 username: username,
                                 email: username + '@dian.org.cn',
                                 password: password
@@ -91,17 +96,106 @@ plugin.continueLogin = function (req, username, password, next) {
                 request.write(postData);
                 request.end();
             } else {
-                // winston.info('doc');
-                // winston.info(doc);
-                newuid = doc.uid;
+                var userslug = utils.slugify(username);
+                var uid;
+                var userData = {};
+                if (!password || !utils.isPasswordValid(password)) {
+                    return next(new Error('[[error:invalid-password]]'));
+                }
+
+                if (password.length > 4096) {
+                    return next(new Error('[[error:password-too-long]]'));
+                }
+                winston.info('doc');
+                winston.info(doc);
+                async.waterfall([
+                    function (next) {
+                        user.getUidByUserslug(userslug, next);
+                    },
+                    function (_uid, next) {
+                        uid = _uid;
+                        winston.info('uid');
+                        winston.info(uid);
+                        // winston.info('123');
+                        async.parallel({
+                            userData: function (next) {
+                                db.getObjectFields('user:' + uid, ['password', 'passwordExpiry'], next);
+                            },
+                            isAdmin: function (next) {
+                                user.isAdministrator(uid, next);
+                            },
+                            banned: function (next) {
+                                user.isBanned(uid, next);
+                            },
+                        }, next);
+                    },
+                    function (result, next) {
+                        userData = result.userData;
+                        // winston.info('userData');
+                        // winston.info(userData);
+                        userData.uid = uid;
+                        userData.isAdmin = result.isAdmin;
+                        if (result.banned) {
+                            return getBanInfo(uid, next);
+                        }
+                        // winston.info('ready for Comparing');
+                        // winston.info('Comparing');
+                        Password.compare(password, userData.password, next);
+                        winston.info('Compare finished');
+                    },
+                    function (passwordMatch, next) {
+                        // winston.info('passwordMatch');
+                        // winston.info(passwordMatch);
+                        if (!passwordMatch) {
+                            return next(new Error('[[error:invalid-login-credentials]]'));
+                        }
+                        user.auth.clearLoginAttempts(uid);
+                        next(null, {
+                            uid: uid
+                        }, '[[success:authentication-successful]]');
+                        // winston.info('next');
+                    },
+                ], next);
+                // newuid = doc.uid;
                 // winston.info(newuid);
                 // winston.info('is uid');
-                next(null, {
-                    uid: newuid
-                }, '[[success:authentication-successful]]');
+                // next(null, {
+                //     uid: newuid
+                // }, '[[success:authentication-successful]]');
             }
-        })
+        });
 };
+
+function getBanInfo(uid, callback) {
+	var banInfo;
+	async.waterfall([
+		function (next) {
+			user.getLatestBanInfo(uid, next);
+		},
+		function (_banInfo, next) {
+			banInfo = _banInfo;
+			if (banInfo.reason) {
+				return next();
+			}
+
+			translator.translate('[[user:info.banned-no-reason]]', function (translated) {
+				banInfo.reason = translated;
+				next();
+			});
+		},
+		function (next) {
+			next(new Error(banInfo.expiry ? '[[error:user-banned-reason-until, ' + banInfo.expiry_readable + ', ' + banInfo.reason + ']]' : '[[error:user-banned-reason, ' + banInfo.reason + ']]'));
+		},
+	], function (err) {
+		if (err) {
+			if (err.message === 'no-ban-info') {
+				err.message = '[[error:user-banned]]';
+			}
+		}
+		callback(err);
+	});
+}
+
 
 
 module.exports = plugin;
